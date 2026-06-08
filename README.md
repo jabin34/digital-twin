@@ -23,7 +23,7 @@ The goal is to explore how digital twins can enhance:
 
 ## Live Demo
 
-Example: link
+https://harmonious-raindrop-f4e390.netlify.app/
 
 ---
 

@@ -9,7 +9,7 @@ A browser-based digital twin of my room. I built this to explore how a simple 3D
 ## What I Built
 
 **3D Room Scan**
-I scanned my room using Polycam's Gaussian Splatting feature on my phone. The quality isn't perfect — lighting and surface texture affect how well the splat renders — but it's navigable in the browser and gives a real spatial reference for where the sensor overlays sit. Gaussian Splatting (Kerbl et al., 2023) is a newer technique for turning photo captures into 3D scenes, and Polycam makes it accessible without specialist equipment.
+I scanned my room using Polycam's Gaussian Splatting feature on my phone.The quality isn't perfect because lighting and surface texture affect the result, but the scene is navigable in the browser and gives a useful spatial reference for the sensor overlays. Gaussian Splatting (Kerbl et al., 2023) is a newer technique for turning photo captures into 3D scenes, and Polycam makes it accessible without specialist equipment.
 
 **Live Sensor Overlays**
 Five data points update every second, floating over the 3D scene:
@@ -22,7 +22,7 @@ Five data points update every second, floating over the 3D scene:
 | Active Devices | Number of powered devices |
 | Engagement Score | A derived productivity estimate |
 
-The values are simulated, but they're connected to each other — more people means more CO₂ and higher temperature, which drags down the engagement score. That chain reflects how indoor environments actually behave (Satish et al., 2012; Wargocki et al., 2000).
+The values are simulated, but they're connected to each other. More people means more CO₂ and higher temperature, which drags down the engagement score. That chain reflects how indoor environments actually behave (Satish et al., 2012; Wargocki et al., 2000).
 
 The sensor badges are positioned approximately over relevant zones in the scene. In a production system these would be anchored to real sensor locations using spatial coordinates.
 

@@ -1,0 +1,649 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Digital Twin - My Room</title>
+    <style>
+      /* =====================
+       BASIC PAGE SETUP
+    ===================== */
+      body {
+        font-family: Arial, sans-serif;
+        background: #f4f6f9;
+        margin: 0;
+        padding: 20px;
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 22px;
+      }
+
+      /* =====================
+       MAIN LAYOUT
+       Left = 3D scene (bigger)
+       Right = data cards
+    ===================== */
+      .layout {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 20px;
+      }
+
+      /* =====================
+       3D SCENE AREA
+       The iframe + floating badges on top
+    ===================== */
+      .scene-area {
+        position: relative; /* badges position relative to this box */
+      }
+
+      /* The Polycam 3D scan */
+      iframe {
+        width: 100%;
+        height: 600px;
+        border: none;
+        border-radius: 12px;
+        display: block;
+      }
+
+      /* =====================
+       SENSOR BADGES
+       Float over the 3D scene
+       Each badge = dot + line + box
+    ===================== */
+
+      /* Outer wrapper — stacks dot, line, box vertically */
+      .badge {
+        position: absolute; /* float over the scene */
+        pointer-events: none; /* clicks go through to the 3D scene */
+        display: flex;
+        flex-direction: column; /* stack vertically */
+        align-items: center;
+        z-index: 10;
+      }
+
+      /* Pulsing circle at top of badge */
+      .badge-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        border: 2px solid #00e5ff;
+        background: rgba(0, 229, 255, 0.2);
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.6);
+          opacity: 0.4;
+        }
+      }
+
+      /* Thin vertical line connecting dot to box */
+      .badge-line {
+        width: 1px;
+        height: 25px;
+        background: linear-gradient(#00e5ff, transparent);
+      }
+
+      /* The dark data box */
+      .badge-box {
+        background: rgba(0, 0, 0, 0.75);
+        color: white;
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-size: 12px;
+        min-width: 120px;
+        backdrop-filter: blur(6px); /* blurs 3D scene behind box */
+      }
+
+      /* Small text label at top of box (e.g. "CO₂ / AIR") */
+      .badge-label {
+        font-size: 9px;
+        color: #9ca3af;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      /* The big number value */
+      .badge-value {
+        font-size: 18px;
+        font-weight: bold;
+        color: #00e5ff;
+        margin: 2px 0;
+      }
+
+      /* Status text at bottom (e.g. "Good") */
+      .badge-status {
+        font-size: 9px;
+        color: #9ca3af;
+      }
+
+      /* =====================
+       BADGE POSITIONS
+       Change left/top % to move badges
+       around the 3D scene
+    ===================== */
+      #badge-temp {
+        left: 15%;
+        top: 12%;
+      }
+      #badge-co2 {
+        left: 48%;
+        top: 8%;
+      }
+      #badge-occ {
+        left: 72%;
+        top: 25%;
+      }
+      #badge-dev {
+        left: 32%;
+        top: 52%;
+      }
+      #badge-eng {
+        left: 60%;
+        top: 62%;
+      }
+
+      /* =====================
+       RIGHT SIDE: DATA CARDS
+    ===================== */
+      .cards-column {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .card {
+        background: white;
+        padding: 14px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        text-align: center;
+      }
+
+      /* Small grey label above the number */
+      .card-label {
+        font-size: 11px;
+        color: #9ca3af;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+      }
+
+      /* The big number */
+      .card-value {
+        font-size: 26px;
+        font-weight: bold;
+        color: #111827;
+      }
+
+      /* =====================
+       AI RECOMMENDATIONS BOX
+       Dark box showing what the AI decided
+    ===================== */
+      .ai-box {
+        background: #111827;
+        color: #e5e7eb;
+        padding: 16px;
+        border-radius: 10px;
+        font-size: 13px;
+        line-height: 1.6;
+        margin-top: 4px;
+      }
+
+      .ai-box b {
+        color: #60a5fa; /* blue for headings inside AI box */
+      }
+
+      /* Each recommendation line */
+      .rec-item {
+        background: rgba(255, 255, 255, 0.07);
+        border-left: 3px solid #60a5fa;
+        padding: 6px 10px;
+        border-radius: 0 6px 6px 0;
+        margin: 6px 0;
+        font-size: 12px;
+      }
+
+      .rec-item.danger {
+        border-color: #f87171;
+      }
+      .rec-item.warn {
+        border-color: #fbbf24;
+      }
+      .rec-item.good {
+        border-color: #34d399;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🏢 Digital Twin — Space Intelligence System</h1>
+
+    <div class="layout">
+      <!-- ========================
+       LEFT: 3D SCENE + BADGES
+  ========================= -->
+      <div class="scene-area">
+        <!-- Your Polycam 3D Gaussian Splat -->
+        <iframe
+          src="https://poly.cam/capture/529ed0c6-239b-431e-9728-57f76dadbced/embed"
+          title="Room Gaussian Splat"
+          allow="fullscreen; xr-spatial-tracking"
+        >
+        </iframe>
+
+        <!-- BADGE 1: Temperature
+         Positioned top-left area of scene -->
+        <div class="badge" id="badge-temp">
+          <div class="badge-dot" style="border-color: #ff7043"></div>
+          <div
+            class="badge-line"
+            style="background: linear-gradient(#ff7043, transparent)"
+          ></div>
+          <div class="badge-box">
+            <div class="badge-label">🌡 Temperature</div>
+            <div class="badge-value" id="bv-temp" style="color: #ff7043">
+              -- °C
+            </div>
+            <div class="badge-status" id="bs-temp">Zone A</div>
+          </div>
+        </div>
+
+        <!-- BADGE 2: CO2
+         Positioned top-centre of scene -->
+        <div class="badge" id="badge-co2">
+          <div class="badge-dot" style="border-color: #ab47bc"></div>
+          <div
+            class="badge-line"
+            style="background: linear-gradient(#ab47bc, transparent)"
+          ></div>
+          <div class="badge-box">
+            <div class="badge-label">💨 CO₂ / Air</div>
+            <div class="badge-value" id="bv-co2" style="color: #00e5ff">
+              -- ppm
+            </div>
+            <div class="badge-status" id="bs-co2">Air quality</div>
+          </div>
+        </div>
+
+        <!-- BADGE 3: Occupancy
+         Positioned top-right of scene -->
+        <div class="badge" id="badge-occ">
+          <div class="badge-dot" style="border-color: #26c6da"></div>
+          <div
+            class="badge-line"
+            style="background: linear-gradient(#26c6da, transparent)"
+          ></div>
+          <div class="badge-box">
+            <div class="badge-label">👥 Occupancy</div>
+            <div class="badge-value" id="bv-occ" style="color: #26c6da">
+              -- ppl
+            </div>
+            <div class="badge-status">Max: 25</div>
+          </div>
+        </div>
+
+        <!-- BADGE 4: Devices
+         Positioned middle of scene -->
+        <div class="badge" id="badge-dev">
+          <div class="badge-dot"></div>
+          <div class="badge-line"></div>
+          <div class="badge-box">
+            <div class="badge-label">💻 Devices</div>
+            <div class="badge-value" id="bv-dev">-- on</div>
+            <div class="badge-status">Active nodes</div>
+          </div>
+        </div>
+
+        <!-- BADGE 5: Engagement
+         Positioned lower-right of scene -->
+        <div class="badge" id="badge-eng">
+          <div class="badge-dot" style="border-color: #7b61ff"></div>
+          <div
+            class="badge-line"
+            style="background: linear-gradient(#7b61ff, transparent)"
+          ></div>
+          <div class="badge-box">
+            <div class="badge-label">📊 Engagement</div>
+            <div class="badge-value" id="bv-eng" style="color: #7b61ff">
+              --%
+            </div>
+            <div class="badge-status" id="bs-eng">Index</div>
+          </div>
+        </div>
+      </div>
+      <!-- end scene-area -->
+
+      <!-- ========================
+       RIGHT: CARDS + AI BOX
+  ========================= -->
+      <div class="cards-column">
+        <div class="card">
+          <div class="card-label">Occupancy</div>
+          <div class="card-value" id="cv-occ">--</div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">Temperature</div>
+          <div class="card-value" id="cv-temp">-- °C</div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">CO₂ Level</div>
+          <div class="card-value" id="cv-co2">-- ppm</div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">Devices Active</div>
+          <div class="card-value" id="cv-dev">--</div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">Engagement Score</div>
+          <div class="card-value" id="cv-eng">--%</div>
+        </div>
+
+        <!-- AI Decision Box -->
+        <div class="ai-box" id="ai-box">SYSTEM INITIALIZING...</div>
+      </div>
+    </div>
+    <!-- end layout -->
+
+    <script>
+      // =============================================
+      // 1. SENSOR DATA
+      // Stores the current value of each sensor
+      // =============================================
+
+      var sensors = {
+        occupancy: 5,
+        temperature: 22,
+        co2: 420,
+        devices: 7,
+        engagement: 100,
+      };
+
+      // =============================================
+      // 2. PHYSICS SIMULATION
+      // Updates sensor values every second
+      // Uses realistic rules (not pure random)
+      // =============================================
+
+      function updateSensors() {
+        // --- OCCUPANCY ---
+        // Drifts slightly up or down randomly
+        // (Math.random() - 0.5) gives a number between -0.5 and +0.5
+        sensors.occupancy += (Math.random() - 0.5) * 2;
+        sensors.occupancy = clamp(sensors.occupancy, 0, 25);
+
+        // --- CO2 ---
+        // More people = more CO2 (breathing)
+        // Also add realistic noise (±15 ppm)
+        var co2Target = 400 + sensors.occupancy * 40;
+        sensors.co2 += (co2Target - sensors.co2) * 0.05; // slow drift toward target
+        sensors.co2 += (Math.random() - 0.5) * 15; // add noise
+        sensors.co2 = clamp(sensors.co2, 400, 2000);
+
+        // --- TEMPERATURE ---
+        // Rises slowly with more people (body heat)
+        // Also add small noise (±0.2°C)
+        var tempTarget = 21 + sensors.occupancy * 0.15;
+        sensors.temperature += (tempTarget - sensors.temperature) * 0.03;
+        sensors.temperature += (Math.random() - 0.5) * 0.2;
+        sensors.temperature = clamp(sensors.temperature, 18, 30);
+
+        // --- DEVICES ---
+        // Scales with occupancy + small random
+        sensors.devices = Math.round(
+          sensors.occupancy * 0.8 + 2 + Math.random(),
+        );
+        sensors.devices = clamp(sensors.devices, 0, 30);
+
+        // --- ENGAGEMENT ---
+        // Starts at 100, reduced by bad conditions
+        sensors.engagement = 100;
+
+        if (sensors.co2 > 900) sensors.engagement -= 25; // bad air = less focus
+        if (sensors.temperature > 25) sensors.engagement -= 15; // too warm = less focus
+        if (sensors.occupancy > 18) sensors.engagement -= 10; // too crowded = less focus
+
+        sensors.engagement = clamp(sensors.engagement, 0, 100);
+      }
+
+      // =============================================
+      // 3. DECISION ENGINE (Rule-based AI)
+      // Checks sensor values against thresholds
+      // Returns a list of recommendations
+      // =============================================
+
+      function getRecommendations() {
+        // Each recommendation has: type, icon, title, body
+        var recs = [];
+
+        // RULE 1: CO2 too high
+        if (sensors.co2 > 1200) {
+          recs.push({
+            type: "danger",
+            icon: "🔴",
+            title: "Critical CO₂ Level",
+            body:
+              "CO₂ at " +
+              Math.round(sensors.co2) +
+              " ppm. Open windows and activate HVAC fresh-air intake immediately.",
+          });
+        } else if (sensors.co2 > 900) {
+          recs.push({
+            type: "warn",
+            icon: "🟡",
+            title: "Elevated CO₂",
+            body:
+              "CO₂ at " +
+              Math.round(sensors.co2) +
+              " ppm exceeds cognitive comfort threshold. Increase ventilation.",
+          });
+        }
+
+        // RULE 2: Temperature too high
+        if (sensors.temperature > 26) {
+          recs.push({
+            type: "danger",
+            icon: "🌡️",
+            title: "Thermal Stress Detected",
+            body:
+              "Temperature " +
+              sensors.temperature.toFixed(1) +
+              "°C above optimal range (22–25°C). Activate cooling subsystem.",
+          });
+        } else if (sensors.temperature > 24) {
+          recs.push({
+            type: "warn",
+            icon: "☀️",
+            title: "Temperature Rising",
+            body:
+              "Temperature " +
+              sensors.temperature.toFixed(1) +
+              "°C approaching upper limit. Monitor and consider cooling.",
+          });
+        }
+
+        // RULE 3: Room too crowded
+        if (sensors.occupancy > 20) {
+          recs.push({
+            type: "danger",
+            icon: "👥",
+            title: "Spatial Saturation",
+            body:
+              Math.round(sensors.occupancy) +
+              " people detected. Approaching capacity limit. Redirect arrivals.",
+          });
+        } else if (sensors.occupancy > 15) {
+          recs.push({
+            type: "warn",
+            icon: "⚠️",
+            title: "High Occupancy",
+            body:
+              Math.round(sensors.occupancy) +
+              " people present. Monitor density and prepare overflow space.",
+          });
+        }
+
+        // RULE 4: Devices on but room empty (energy waste)
+        if (sensors.devices > 10 && sensors.occupancy < 3) {
+          recs.push({
+            type: "warn",
+            icon: "⚡",
+            title: "Energy Saving Opportunity",
+            body:
+              sensors.devices +
+              " devices active with only " +
+              Math.round(sensors.occupancy) +
+              " people. Power down idle nodes.",
+          });
+        }
+
+        // RULE 5: Low engagement
+        if (sensors.engagement < 50) {
+          recs.push({
+            type: "warn",
+            icon: "📉",
+            title: "Low Engagement Detected",
+            body:
+              "Engagement index at " +
+              sensors.engagement +
+              "%. Environmental conditions may be affecting productivity.",
+          });
+        }
+
+        // If no problems found, show all good
+        if (recs.length === 0) {
+          recs.push({
+            type: "good",
+            icon: "✅",
+            title: "All Systems Nominal",
+            body: "Environmental conditions within optimal range. No intervention required.",
+          });
+        }
+
+        return recs;
+      }
+
+      // =============================================
+      // 4. UPDATE THE SCREEN
+      // Reads sensor values and puts them on screen
+      // Also updates colours based on values
+      // =============================================
+
+      function updateScreen() {
+        var O = sensors.occupancy;
+        var T = sensors.temperature;
+        var C = sensors.co2;
+        var D = sensors.devices;
+        var E = sensors.engagement;
+
+        // --- UPDATE FLOATING BADGES (over the 3D scene) ---
+
+        // Temperature badge
+        document.getElementById("bv-temp").textContent = T.toFixed(1) + " °C";
+        document.getElementById("bs-temp").textContent =
+          T > 25 ? "⚠ High" : "Normal";
+        document.getElementById("bv-temp").style.color =
+          T > 26 ? "#ff3d5a" : T > 24 ? "#ffb300" : "#ff7043";
+
+        // CO2 badge
+        document.getElementById("bv-co2").textContent = Math.round(C) + " ppm";
+        document.getElementById("bs-co2").textContent =
+          C > 1200 ? "Hazardous" : C > 900 ? "Poor" : "Good";
+        document.getElementById("bv-co2").style.color =
+          C > 1200 ? "#ff3d5a" : C > 900 ? "#ffb300" : "#00e5ff";
+
+        // Occupancy badge
+        document.getElementById("bv-occ").textContent = Math.round(O) + " ppl";
+        document.getElementById("bv-occ").style.color =
+          O > 20 ? "#ff3d5a" : O > 15 ? "#ffb300" : "#26c6da";
+
+        // Devices badge
+        document.getElementById("bv-dev").textContent = D + " on";
+
+        // Engagement badge
+        document.getElementById("bv-eng").textContent = E + "%";
+        document.getElementById("bs-eng").textContent =
+          E > 75 ? "High" : E > 50 ? "Moderate" : "Low";
+        document.getElementById("bv-eng").style.color =
+          E < 50 ? "#ff3d5a" : E < 75 ? "#ffb300" : "#7b61ff";
+
+        // --- UPDATE RIGHT SIDEBAR CARDS ---
+
+        document.getElementById("cv-occ").textContent =
+          Math.round(O) + " people";
+        document.getElementById("cv-temp").textContent = T.toFixed(1) + " °C";
+        document.getElementById("cv-co2").textContent = Math.round(C) + " ppm";
+        document.getElementById("cv-dev").textContent = D + " active";
+        document.getElementById("cv-eng").textContent = E + "%";
+
+        // --- UPDATE  RECOMMENDATION BOX ---
+
+        var recs = getRecommendations();
+
+        // Build the HTML for the AI box
+        var html = "";
+        html += "<b>🤖 SYSTEM REASONING LAYER</b><br><br>";
+        html += "<b>Detected Signals:</b><br>";
+
+        // Show each active signal
+        if (C > 900) html += "• CO₂ exceeds cognitive comfort threshold<br>";
+        if (T > 24)
+          html += "• Temperature above optimal productivity range<br>";
+        if (O > 15) html += "• Occupancy approaching spatial limit<br>";
+        if (E < 50) html += "• Engagement index degraded<br>";
+        if (C <= 900 && T <= 24 && O <= 15 && E >= 50) {
+          html += "• All signals within normal parameters<br>";
+        }
+
+        html += "<br><b>Recommended Actions:</b><br>";
+
+        // Show each recommendation as a coloured card
+        for (var i = 0; i < recs.length; i++) {
+          var r = recs[i];
+          html += '<div class="rec-item ' + r.type + '">';
+          html += r.icon + " <b>" + r.title + "</b><br>";
+          html += r.body;
+          html += "</div>";
+        }
+
+        document.getElementById("ai-box").innerHTML = html;
+      }
+
+      // =============================================
+      // 5. HELPER: clamp
+      // Keeps a number between min and max
+      // Example: clamp(25, 0, 20) = 20
+      // =============================================
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      // =============================================
+      // 6. MAIN LOOP
+      // Runs every 1 second
+      // Step 1: update sensor values
+      // Step 2: update the screen
+      // =============================================
+
+      function mainLoop() {
+        updateSensors();
+        updateScreen();
+      }
+
+      // Run once immediately, then every 1 second
+      mainLoop();
+      setInterval(mainLoop, 1000);
+    </script>
+  </body>
+</html>

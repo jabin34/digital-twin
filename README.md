@@ -38,7 +38,7 @@ https://harmonious-raindrop-f4e390.netlify.app/
 
 ---
 
-### 📊 Real-Time Sensor Layer (Simulated)
+### Real-Time Sensor Layer (Simulated)
 
 | Sensor           | Description                    |
 | ---------------- | ------------------------------ |
@@ -52,7 +52,7 @@ Sensor values are generated using **controlled stochastic simulation** to reflec
 
 ---
 
-## 🧠 Environmental Simulation Model
+## Environmental Simulation Model
 
 The system uses a **dependency-based causal model** rather than independent random values:
 
@@ -64,7 +64,7 @@ This creates realistic interdependencies between environmental variables.
 
 ---
 
-## ⚙️ Decision Support Engine
+## Decision Support Engine
 
 A rule-based reasoning system continuously evaluates conditions and generates actionable recommendations.
 
@@ -79,7 +79,7 @@ An **explainable Decision panel** shows reasoning behind each decision.
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```text
 3D Room Reconstruction (Polycam)
